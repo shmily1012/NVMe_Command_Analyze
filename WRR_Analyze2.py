@@ -4,7 +4,7 @@ Created on Sep 13, 2018
 @author: Chi.Zhang
 '''
 ################################################################
-filename = r"AQ_WRR.txt"
+filename = r"AQ_WRR_2.txt"
 SQ1_base_adr = 0x40e149000
 Increase_step = 0x4000
 ################################################################
@@ -16,6 +16,9 @@ SQ6_base_adr = SQ5_base_adr + Increase_step
 SQ7_base_adr = SQ6_base_adr + Increase_step
 SQ8_base_adr = SQ7_base_adr + Increase_step
 SQ9_base_adr = SQ8_base_adr + Increase_step
+High = [1, 4, 7]
+Middle = [2, 5, 8]
+Low = [3, 6, 9]
 ################################################################
 packets_array = list()
 if __name__ == '__main__':
@@ -26,7 +29,7 @@ if __name__ == '__main__':
     line_id = 0
 #     for line in buf:
     while line_id < len(buf):
-        #     while line_id < 10000:
+        # while line_id < 1000:
         if 'Upstream' in buf[line_id] and 'Mem MRd' in buf[line_id] and 'Split Tra' in buf[line_id]:
             # print(buf[line_id])
             Split_ID = 0
@@ -52,9 +55,9 @@ if __name__ == '__main__':
                         address = (high_adr << 32) | low_adr
                     else:
                         address = int(buf[line_id + i][start:end], 16)
-                    if 0xF00000000 & address == 0x400000000:
-                        print("address1=0x%x" % (address))
-                        print("address2=0x%x" % (address & 0xFFFFFFFFFFFFC000))
+                    # if 0xF00000000 & address == 0x400000000:
+                    #     print("address1=0x%x" % (address))
+                    #     print("address2=0x%x" % (address & 0xFFFFFFFFFFFFC000))
 
                         # print("0x%x" % SQ1_base_adr)
                         # print("0x%x" % SQ2_base_adr)
@@ -66,7 +69,9 @@ if __name__ == '__main__':
                         # print("0x%x" % SQ8_base_adr)
                         # print("0x%x" % SQ9_base_adr)
                     break
-            if address < SQ1_base_adr+Increase_step:
+            if address < SQ1_base_adr:
+                SQ_ID = None
+            elif address < SQ1_base_adr+Increase_step:
                 print("SQ1_base_adr=0x%x" % address)
                 SQ_ID = 1
             elif address < SQ2_base_adr+Increase_step:
@@ -103,9 +108,9 @@ if __name__ == '__main__':
                     #                     print buf[line_id + i]
                     if 'Data(' in buf[line_id + i]:
                         start = buf[line_id + i].index('Data(') + len('Data(')
-                        print('buf[line_id + i]=', buf[line_id + i])
-                        end = buf[line_id + i].index(')', start + 1)
-                        number_of_cmds_in_packet = (
+                        # print('buf[line_id + i]=', buf[line_id + i])
+                        end = buf[line_id + i].index('B', start + 1)
+                        number_of_cmds_in_packet = int(
                             int(buf[line_id + i][start:end], 10) / 64)
                         break
                 for i in range(number_of_cmds_in_packet):
@@ -121,11 +126,32 @@ if __name__ == '__main__':
 #             print buf[line_id + 7]
 
         line_id += 1
+    High_Q = ['High']
+    Mid_Q = ['Medium']
+    Low_Q = ['Low']
+
     for packet in packets_array:
         print(packet)
-    fo = open(r'results_%s' % filename, 'w')
-    fo.write("split_id\tSQID\n")
-    for packet in packets_array:
-        fo.write("%d\t%d\n" % (packet['split_id'], packet['sq_id']))
-    fo.close()
+        if packet['sq_id'] in High:
+            High_Q.append('%d' % packet['sq_id'])
+            Mid_Q.append(' ')
+            Low_Q.append(' ')
+        elif packet['sq_id'] in Middle:
+            High_Q.append(' ')
+            Mid_Q.append('%d' % packet['sq_id'])
+            Low_Q.append(' ')
+        elif packet['sq_id'] in Low:
+            High_Q.append(' ')
+            Mid_Q.append(' ')
+            Low_Q.append('%d' % packet['sq_id'])
+    with open(r'results_%s.csv' % filename[:-4], 'w') as fi:
+        # fo.write("split_id,SQID\n")
+        # for packet in packets_array:
+        #     fo.write("%d,%d\n" % (packet['split_id'], packet['sq_id']))
+        fi.write(''.join(item+',' for item in High_Q))
+        fi.write('\n')
+        fi.write(''.join(item+',' for item in Mid_Q))
+        fi.write('\n')
+        fi.write(''.join(item+',' for item in Low_Q))
+        fi.write('\n')
     print('DONE')
